@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mughal General Store</title>
+<style>
+:root{--g:#0b5d3b;--gd:#073d27;--gold:#c9a227;--cream:#faf6ea}
+*{box-sizing:border-box}
+body{margin:0;font-family:Georgia,'Times New Roman',serif;background:var(--cream);color:#222}
+header{background:var(--g);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5;border-bottom:3px solid var(--gold)}
+header h1{margin:0;font-size:22px;color:var(--gold);letter-spacing:1px}
+header small{display:block;color:#fff;font-size:12px;opacity:.85}
+button{cursor:pointer;font-family:inherit}
+.cartbtn{background:var(--gold);color:var(--gd);border:0;padding:10px 16px;border-radius:6px;font-weight:bold}
+.hero{background:linear-gradient(135deg,var(--gd),var(--g));color:#fff;text-align:center;padding:50px 20px}
+.hero h2{margin:0 0 8px;font-size:32px;color:var(--gold)}
+.tools{display:flex;gap:10px;flex-wrap:wrap;padding:20px;max-width:1100px;margin:auto}
+.tools input{flex:1;min-width:200px;padding:10px;border:1px solid #bbb;border-radius:6px}
+.cat{padding:8px 14px;border:1px solid var(--g);background:#fff;color:var(--g);border-radius:20px}
+.cat.on{background:var(--g);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;padding:0 20px 40px;max-width:1100px;margin:auto}
+.card{background:#fff;border:1px solid #e3d9b5;border-radius:10px;padding:14px;text-align:center}
+.card .em{font-size:48px}
+.card h3{margin:8px 0 4px;font-size:16px}
+.price{color:var(--g);font-weight:bold}
+.add{margin-top:8px;background:var(--g);color:#fff;border:0;padding:8px 14px;border-radius:6px;width:100%}
+.add:hover{background:var(--gd)}
+#panel{position:fixed;top:0;right:-420px;width:400px;max-width:100%;height:100%;background:#fff;box-shadow:-4px 0 20px #0004;transition:.3s;z-index:10;display:flex;flex-direction:column}
+#panel.open{right:0}
+#panel h2{margin:0;padding:16px;background:var(--g);color:var(--gold)}
+#items{flex:1;overflow:auto;padding:12px}
+.row{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee;padding:8px 0;font-size:14px}
+.row button{border:1px solid var(--g);background:#fff;width:26px;height:26px;border-radius:4px}
+.form{padding:12px;border-top:1px solid #ddd}
+.form input,.form select,.form textarea{width:100%;padding:8px;margin:4px 0;border:1px solid #bbb;border-radius:5px;font-family:inherit}
+.total{font-weight:bold;font-size:18px;margin:6px 0}
+.order{width:100%;background:#25a244;color:#fff;border:0;padding:12px;border-radius:6px;font-size:16px;margin-top:6px}
+.close{position:absolute;right:14px;top:14px;background:none;border:0;color:#fff;font-size:22px}
+footer{background:var(--gd);color:#fff;text-align:center;padding:24px;border-top:3px solid var(--gold)}
+footer b{color:var(--gold)}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>MUGHAL GENERAL STORE</h1><small>Quality &amp; Trust, Daily Needs</small></div>
+  <button class="cartbtn" onclick="toggle()">🛒 Cart (<span id="cnt">0</span>)</button>
+</header>
+<div class="hero"><h2>Aapki Rozmarra Ki Zaroorat, Ek Jagah</h2><p>Ghar baithay order karein. Delivery aap ke darwazay tak.</p></div>
+<div class="tools">
+  <input id="q" placeholder="Search product..." oninput="render()">
+  <div id="cats"></div>
+</div>
+<div class="grid" id="grid"></div>
+
+<aside id="panel">
+  <h2>Your Cart</h2><button class="close" onclick="toggle()">✕</button>
+  <div id="items"></div>
+  <div class="form">
+    <div class="total">Total: Rs <span id="tot">0</span></div>
+    <input id="name" placeholder="Aapka naam">
+    <input id="phone" placeholder="Phone number">
+    <textarea id="addr" rows="2" placeholder="Poora address"></textarea>
+    <select id="pay">
+      <option>Cash on Delivery</option>
+      <option>JazzCash</option>
+      <option>Easypaisa</option>
+      <option>Bank Transfer</option>
+    </select>
+    <div id="payinfo" style="font-size:12px;color:#555"></div>
+    <button class="order" onclick="place()">Place Order (WhatsApp)</button>
+  </div>
+</aside>
+
+<footer>
+  <p><b>Mughal General Store</b></p>
+  <p>📍 Address: [yahan apni dukan ka address likhein]</p>
+  <p>📞 [Phone] | WhatsApp: [Number]</p>
+  <p>Open: 9am to 10pm</p>
+</footer>
+
+<script>
+// ====== SETTINGS: apni details yahan badlein ======
+const WHATSAPP = "923000000000"; // Pakistan format, bina + ke
+const DELIVERY_FEE = 100;
+const FREE_DELIVERY_ABOVE = 2000;
+const PAY_INFO = {
+  "JazzCash":"JazzCash number: 03XX-XXXXXXX (Title: Mughal General Store). Payment ke baad screenshot WhatsApp par bhejein.",
+  "Easypaisa":"Easypaisa number: 03XX-XXXXXXX (Title: Mughal General Store). Payment ke baad screenshot WhatsApp par bhejein.",
+  "Bank Transfer":"Bank: XXXX | Account: XXXXXXXX. Payment ke baad screenshot WhatsApp par bhejein.",
+  "Cash on Delivery":""
+};
+// ====== PRODUCTS: yahan apni items aur qeematein badlein ======
+const PRODUCTS = [
+ {n:"Basmati Rice 5kg",p:1850,c:"Grocery",e:"🍚"},
+ {n:"Atta 10kg",p:1700,c:"Grocery",e:"🌾"},
+ {n:"Cooking Oil 1L",p:520,c:"Grocery",e:"🛢️"},
+ {n:"Sugar 1kg",p:150,c:"Grocery",e:"🍬"},
+ {n:"Daal Chana 1kg",p:260,c:"Grocery",e:"🫘"},
+ {n:"Tea Pack 430g",p:690,c:"Beverages",e:"🍵"},
+ {n:"Milk Pack 1L",p:290,c:"Beverages",e:"🥛"},
+ {n:"Soft Drink 1.5L",p:190,c:"Beverages",e:"🥤"},
+ {n:"Juice Pack 1L",p:280,c:"Beverages",e:"🧃"},
+ {n:"Biscuits Family Pack",p:120,c:"Snacks",e:"🍪"},
+ {n:"Chips",p:60,c:"Snacks",e:"🥔"},
+ {n:"Noodles Pack",p:90,c:"Snacks",e:"🍜"},
+ {n:"Washing Powder 1kg",p:480,c:"Household",e:"🧺"},
+ {n:"Dish Soap",p:220,c:"Household",e:"🧽"},
+ {n:"Bath Soap",p:110,c:"Household",e:"🧼"},
+ {n:"Shampoo",p:350,c:"Household",e:"🧴"}
+];
+let cart={},cat="All";
+const $=id=>document.getElementById(id);
+function cats(){
+  const list=["All",...new Set(PRODUCTS.map(p=>p.c))];
+  $("cats").innerHTML=list.map(c=>`<button class="cat ${c==cat?'on':''}" onclick="cat='${c}';cats();render()">${c}</button>`).join(" ");
+}
+function render(){
+  const q=$("q").value.toLowerCase();
+  $("grid").innerHTML=PRODUCTS.map((p,i)=>({...p,i})).filter(p=>(cat=="All"||p.c==cat)&&p.n.toLowerCase().includes(q))
+   .map(p=>`<div class="card"><div class="em">${p.e}</div><h3>${p.n}</h3><div class="price">Rs ${p.p}</div><button class="add" onclick="add(${p.i})">Add to Cart</button></div>`).join("")||"<p>Koi item nahi mili.</p>";
+}
+function add(i){cart[i]=(cart[i]||0)+1;draw();}
+function chg(i,d){cart[i]+=d;if(cart[i]<=0)delete cart[i];draw();}
+function sub(){return Object.entries(cart).reduce((s,[i,q])=>s+PRODUCTS[i].p*q,0);}
+function fee(){const s=sub();return s==0||s>=FREE_DELIVERY_ABOVE?0:DELIVERY_FEE;}
+function draw(){
+  const keys=Object.keys(cart);
+  $("cnt").textContent=keys.reduce((s,k)=>s+cart[k],0);
+  $("items").innerHTML=keys.map(i=>`<div class="row"><span>${PRODUCTS[i].e} ${PRODUCTS[i].n}<br><small>Rs ${PRODUCTS[i].p}</small></span><span><button onclick="chg(${i},-1)">-</button> ${cart[i]} <button onclick="chg(${i},1)">+</button></span></div>`).join("")||"<p>Cart khali hai.</p>";
+  $("tot").textContent=sub()+fee()+(fee()?` (incl. delivery Rs ${fee()})`:"");
+}
+function toggle(){$("panel").classList.toggle("open");}
+$("pay").onchange=()=>$("payinfo").textContent=PAY_INFO[$("pay").value];
+function place(){
+  if(!Object.keys(cart).length)return alert("Pehle cart mein items daalein.");
+  const n=$("name").value.trim(),ph=$("phone").value.trim(),a=$("addr").value.trim();
+  if(!n||!ph||!a)return alert("Naam, phone aur address zaroori hain.");
+  let m="*New Order - Mughal General Store*\n\n";
+  Object.entries(cart).forEach(([i,q])=>m+=`${q} x ${PRODUCTS[i].n} = Rs ${PRODUCTS[i].p*q}\n`);
+  m+=`\nSubtotal: Rs ${sub()}\nDelivery: Rs ${fee()}\n*Total: Rs ${sub()+fee()}*\n\nPayment: ${$("pay").value}\nName: ${n}\nPhone: ${ph}\nAddress: ${a}`;
+  window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(m)}`,"_blank");
+}
+cats();render();draw();
+</script>
+</body>
+</html>

@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://parvezblouch30-hue.github.io/mughal-general-store/sitemap.xml
